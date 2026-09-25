@@ -1,0 +1,534 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Água na Horta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap">
+<style>
+  /* Tema único e claro de propósito: uma horta com terra, canos e água */
+  :root {
+    color-scheme: light;
+    --fundo: #e6efdc;
+    --tinta: #263628;
+    --suave: #5d6f5f;
+    --terra: #85563a;
+    --terra2: #7a4e33;
+    --terra-borda: #5e3a25;
+    --cano: #46525e;
+    --cano-vazio: #cfd8df;
+    --agua: #2fa8ff;
+    --agua-clara: #9ad8ff;
+    --flor: #f36f45;
+    --folha: #4caf50;
+    --papel: #fbfdf7;
+    --cell: 64px;
+  }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--tinta);
+    font: 600 16px/1.4 "Nunito", system-ui, sans-serif;
+    padding-inline: 16px;
+    display: flex; justify-content: center;
+  }
+  .app { width: 100%; max-width: 620px; padding-block: 16px 28px; display: flex; flex-direction: column; gap: 14px; }
+  button { font: inherit; color: inherit; }
+
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  h1 { margin: 0; font: 34px/1 "Lilita One", "Arial Black", sans-serif; color: var(--terra-borda); letter-spacing: .01em; }
+  h1 span { color: var(--agua); }
+  .sub { margin: 4px 0 0; color: var(--suave); font-size: 14px; }
+
+  .painel { display: flex; gap: 8px; flex-wrap: wrap; }
+  .caixa {
+    background: var(--papel);
+    border: 2px solid #cfdcc5;
+    border-radius: 12px;
+    padding: 4px 12px;
+    display: flex; flex-direction: column; justify-content: center;
+    min-width: 64px;
+  }
+  .caixa.fase { flex-direction: row; align-items: center; gap: 2px; padding: 2px; }
+  .caixa.fase > div { display: flex; flex-direction: column; align-items: center; padding: 2px 6px; }
+  .rotulo { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--suave); }
+  .valor { font: 22px/1.1 "Lilita One", "Arial Black", sans-serif; font-variant-numeric: tabular-nums; }
+  .seta {
+    width: 30px; height: 38px; border: 0; border-radius: 8px;
+    background: transparent; cursor: pointer; font-size: 14px;
+  }
+  .seta:hover:not(:disabled) { background: #e3ecd9; }
+  .seta:disabled { opacity: .25; cursor: default; }
+
+  /* ---------- Tabuleiro ---------- */
+  .palco { display: flex; justify-content: center; }
+  .horta {
+    position: relative;
+    display: grid;
+    grid-template-columns: calc(var(--cell) * .8) auto calc(var(--cell) * .8);
+    align-items: start;
+  }
+  .grade {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), var(--cell));
+    grid-auto-rows: var(--cell);
+    background: var(--terra-borda);
+    border: 6px solid var(--terra-borda);
+    border-radius: 14px;
+    box-shadow: 0 6px 0 #4a2d1c;
+  }
+  .peca {
+    position: relative;
+    width: var(--cell); height: var(--cell);
+    padding: 0; border: 0; margin: 0;
+    background: var(--terra);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+  }
+  .peca:nth-child(odd) { background: var(--terra2); }
+  .peca::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(0,0,0,.12) 1.5px, transparent 2px), radial-gradient(rgba(255,255,255,.07) 1px, transparent 1.5px);
+    background-size: 11px 11px, 7px 7px;
+    background-position: 0 0, 4px 5px;
+  }
+  .peca svg { position: relative; display: block; width: 100%; height: 100%; transition: transform .16s ease-out; }
+  .peca .miolo { stroke: var(--cano-vazio); transition: stroke .2s; }
+  .peca.molhada .miolo { stroke: var(--agua); }
+  .peca:hover svg { filter: brightness(1.1); }
+  .peca:focus-visible { outline: 3px solid #fff; outline-offset: -4px; z-index: 1; }
+  .peca.dica { animation: brilho .5s ease-in-out 3; }
+  @keyframes brilho { 50% { box-shadow: inset 0 0 0 4px #ffe066; } }
+  .peca.jorro .miolo { animation: jorro .5s ease-out both; }
+  @keyframes jorro { 0% { stroke: var(--agua-clara); } 100% { stroke: var(--agua); } }
+
+  .lado { position: relative; height: calc(var(--cell) * var(--rows) + 12px); }
+  .caixa-dagua, .planta { position: absolute; width: 100%; aspect-ratio: .8; max-width: 100%; }
+  .caixa-dagua svg, .planta svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .flor { transform-origin: 50% 60%; transform: scale(0); transition: transform .6s cubic-bezier(.3,1.6,.5,1) .15s; }
+  .planta.florida .flor { transform: scale(1); }
+  .planta .caule { transition: stroke .3s; }
+  .planta.molhada .caule { stroke: #3d9a41; }
+  .gota { animation: pinga 1.4s ease-in infinite; }
+  @keyframes pinga { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(14px); opacity: 0; } }
+
+  /* ---------- Vitória ---------- */
+  .vitoria {
+    position: fixed; inset: 0; z-index: 5;
+    display: grid; place-items: center;
+    background: rgba(230,239,220,.72);
+    backdrop-filter: blur(2px);
+    padding: 12px;
+  }
+  .cartao {
+    background: var(--papel);
+    border: 3px solid var(--terra-borda);
+    border-radius: 18px;
+    padding: 18px 20px;
+    text-align: center;
+    max-width: 320px; width: 100%;
+    box-shadow: 0 6px 0 var(--terra-borda);
+    animation: surge .4s cubic-bezier(.3,1.6,.5,1);
+  }
+  @keyframes surge { from { transform: scale(.6); opacity: 0; } }
+  .cartao h2 { margin: 0; font: 28px/1.1 "Lilita One", "Arial Black", sans-serif; color: var(--folha); }
+  .estrelas { font-size: 40px; letter-spacing: 6px; line-height: 1.1; margin: 6px 0 2px; }
+  .estrelas .on { color: #ffc233; }
+  .estrelas .off { color: #dfe5d8; }
+  .cartao p { margin: 0 0 14px; color: var(--suave); }
+  .cartao .acoes { display: grid; gap: 8px; }
+
+  .acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    flex: 1 1 140px; min-height: 48px;
+    border-radius: 14px;
+    border: 3px solid var(--terra-borda);
+    background: var(--papel);
+    font-weight: 800; font-size: 17px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 var(--terra-borda);
+  }
+  .btn:active { transform: translateY(4px); box-shadow: none; }
+  .btn.azul { background: var(--agua); color: #fff; border-color: #1b6fae; box-shadow: 0 4px 0 #1b6fae; }
+  .btn:focus-visible, .seta:focus-visible { outline: 3px solid var(--agua); outline-offset: 3px; }
+
+  .regras { margin: 0; color: var(--suave); font-size: 15px; max-width: 62ch; }
+  .regras b { color: var(--tinta); }
+
+  @media (max-width: 420px) {
+    h1 { font-size: 28px; }
+    .valor { font-size: 19px; }
+    .caixa { padding: 4px 8px; min-width: 0; flex: 1 1 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01s !important; animation-iteration-count: 1 !important; transition-duration: .01s !important; }
+  }
+</style>
+
+<div class="app">
+  <header>
+    <div>
+      <h1>Água na <span>Horta</span></h1>
+      <p class="sub">Gire os canos e leve a água até a plantinha</p>
+    </div>
+  </header>
+
+  <div class="painel">
+    <div class="caixa fase">
+      <button class="seta" id="anterior" aria-label="Fase anterior">◀</button>
+      <div><span class="rotulo">Fase</span><span class="valor" id="nivel">1</span></div>
+      <button class="seta" id="proxima" aria-label="Próxima fase">▶</button>
+    </div>
+    <div class="caixa"><span class="rotulo">Giros</span><span class="valor" id="giros">0</span></div>
+    <div class="caixa"><span class="rotulo">Meta ★★★</span><span class="valor" id="meta">0</span></div>
+  </div>
+
+  <div class="palco">
+    <div class="horta" id="horta">
+      <div class="lado"><div class="caixa-dagua" id="caixaDagua"></div></div>
+      <div class="grade" id="grade"></div>
+      <div class="lado"><div class="planta" id="planta"></div></div>
+    </div>
+  </div>
+
+  <div class="acoes">
+    <button class="btn azul" id="btnDica">Dica</button>
+    <button class="btn" id="btnReiniciar">Recomeçar fase</button>
+  </div>
+
+  <p class="regras">
+    <b>Toque num cano para girar.</b> A água sai da caixa d'água e só passa por canos que se encaixam. Quando ela chegar até a plantinha, você vence. Termine com menos giros que a meta para ganhar 3 estrelas.
+  </p>
+</div>
+
+<script>
+/* =========================================================
+   ÁGUA NA HORTA — jogo de girar canos
+   HTML + CSS + JavaScript puro, sem bibliotecas.
+   ========================================================= */
+
+/* ---------- Direções como bits ----------
+   Cada peça guarda para onde ela tem saída, somando:
+   Cima = 1, Direita = 2, Baixo = 4, Esquerda = 8.
+   Ex.: um cano reto em pé é 1 + 4 = 5. Uma curva cima-direita é 1 + 2 = 3. */
+const N = 1, L = 2, S = 4, O = 8;
+const PASSO = { [N]: [-1, 0], [L]: [0, 1], [S]: [1, 0], [O]: [0, -1] };
+const DIRECOES = [N, L, S, O];
+const oposta = d => ((d << 2) | (d >> 2)) & 15;          // N<->S, L<->O
+const girar = (m, vezes = 1) => { for (let i = 0; i < vezes % 4; i++) m = ((m << 1) | (m >> 3)) & 15; return m; };
+
+/* ---------- Números aleatórios com semente (fase 3 é sempre igual) ---------- */
+function criarAleatorio(semente) {
+  return function () {
+    semente |= 0; semente = (semente + 0x6D2B79F5) | 0;
+    let t = Math.imul(semente ^ (semente >>> 15), 1 | semente);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function embaralhar(lista, aleatorio) {
+  const a = [...lista];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(aleatorio() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+/* ---------- Gerador de fases ----------
+   1. Faz um caminho sinuoso da caixa d'água (esquerda) até a planta (direita),
+      usando busca em profundidade com direções sorteadas.
+   2. Coloca o cano certo em cada casa do caminho.
+   3. Enche o resto com canos aleatórios (para confundir).
+   4. Gira tudo aleatoriamente. Como o caminho existe, sempre tem solução. */
+function gerarFase(nivel) {
+  const aleatorio = criarAleatorio(nivel * 104729 + 7);
+  const colunas = Math.min(4 + Math.floor((nivel - 1) / 2), 8);
+  const linhas = Math.min(4 + Math.floor(nivel / 3), 8);
+  const entrada = Math.floor(aleatorio() * linhas);
+  const saida = Math.floor(aleatorio() * linhas);
+
+  function buscar(r, c, visitado) {
+    visitado.add(r * colunas + c);
+    if (r === saida && c === colunas - 1) return [[r, c]];
+    for (const d of embaralhar(DIRECOES, aleatorio)) {
+      const [dr, dc] = PASSO[d];
+      const nr = r + dr, nc = c + dc;
+      if (nr < 0 || nr >= linhas || nc < 0 || nc >= colunas || visitado.has(nr * colunas + nc)) continue;
+      const resto = buscar(nr, nc, visitado);
+      if (resto) return [[r, c], ...resto];
+    }
+    return null;
+  }
+
+  // Tenta várias vezes e fica com o caminho mais comprido (mais divertido)
+  let caminho = null;
+  const alvo = Math.floor(linhas * colunas * Math.min(0.35 + nivel * 0.03, 0.6));
+  for (let t = 0; t < 40; t++) {
+    const c = buscar(entrada, 0, new Set());
+    if (!caminho || c.length > caminho.length) caminho = c;
+    if (caminho.length >= alvo) break;
+  }
+
+  const direcaoEntre = ([r1, c1], [r2, c2]) =>
+    r2 < r1 ? N : r2 > r1 ? S : c2 > c1 ? L : O;
+
+  const pecas = Array.from({ length: linhas * colunas }, () => null);
+  caminho.forEach((casa, i) => {
+    const antes = i === 0 ? O : direcaoEntre(casa, caminho[i - 1]);
+    const depois = i === caminho.length - 1 ? L : direcaoEntre(casa, caminho[i + 1]);
+    pecas[casa[0] * colunas + casa[1]] = { base: antes | depois, noCaminho: true, ordem: i };
+  });
+
+  const chanceT = Math.min(0.12 + nivel * 0.03, 0.4);
+  const RETOS = [5, 10], CURVAS = [3, 6, 12, 9], TES = [7, 11, 13, 14];
+  for (let i = 0; i < pecas.length; i++) {
+    if (pecas[i]) continue;
+    const grupo = aleatorio() < chanceT ? TES : aleatorio() < 0.5 ? RETOS : CURVAS;
+    pecas[i] = { base: grupo[Math.floor(aleatorio() * grupo.length)], noCaminho: false };
+  }
+
+  // Embaralha os giros
+  let meta = 0;
+  for (const p of pecas) {
+    p.giro = Math.floor(aleatorio() * 4);
+    if (p.noCaminho) meta += giroQueFalta(p);
+  }
+  // Se por acaso já nasceu resolvida, gira a primeira peça do caminho
+  if (meta === 0) {
+    const p = pecas[caminho[0][0] * colunas + caminho[0][1]];
+    p.giro = 1; meta = giroQueFalta(p);
+  }
+  return { linhas, colunas, entrada, saida, pecas, meta };
+}
+
+const eReto = m => m === 5 || m === 10;
+// Quantos toques faltam para uma peça voltar à posição da solução
+function giroQueFalta(p) {
+  const g = ((p.giro % 4) + 4) % 4;
+  return eReto(p.base) ? g % 2 : (4 - g) % 4;
+}
+const saidasAtuais = p => girar(p.base, ((p.giro % 4) + 4) % 4);
+
+/* ---------- Por onde a água passa ----------
+   Busca em largura: começa na peça da entrada e segue para cada vizinha
+   que tenha uma saída encaixando com a peça atual. */
+function calcularAgua() {
+  const { linhas, colunas, entrada, saida, pecas } = jogo;
+  const distancia = new Map();
+  const inicio = entrada * colunas;
+  if (!(saidasAtuais(pecas[inicio]) & O)) return { molhadas: distancia, chegou: false };
+  const fila = [[entrada, 0]];
+  distancia.set(inicio, 0);
+  while (fila.length) {
+    const [r, c] = fila.shift();
+    const aqui = r * colunas + c;
+    const m = saidasAtuais(pecas[aqui]);
+    for (const d of DIRECOES) {
+      if (!(m & d)) continue;
+      const [dr, dc] = PASSO[d];
+      const nr = r + dr, nc = c + dc;
+      if (nr < 0 || nr >= linhas || nc < 0 || nc >= colunas) continue;
+      const vizinha = nr * colunas + nc;
+      if (distancia.has(vizinha)) continue;
+      if (!(saidasAtuais(pecas[vizinha]) & oposta(d))) continue;
+      distancia.set(vizinha, distancia.get(aqui) + 1);
+      fila.push([nr, nc]);
+    }
+  }
+  const ultima = saida * colunas + (colunas - 1);
+  const chegou = distancia.has(ultima) && (saidasAtuais(pecas[ultima]) & L) > 0;
+  return { molhadas: distancia, chegou };
+}
+
+/* ---------- Desenho de um cano em SVG ---------- */
+const BORDA = { [N]: [50, 0], [L]: [100, 50], [S]: [50, 100], [O]: [0, 50] };
+function desenharCano(mascara) {
+  const dirs = DIRECOES.filter(d => mascara & d);
+  let forma;
+  const curva = dirs.length === 2 && !eReto(mascara);
+  if (curva) {
+    const [a, b] = dirs.map(d => BORDA[d]);
+    forma = `M${a[0]} ${a[1]} Q50 50 ${b[0]} ${b[1]}`;
+  } else {
+    forma = dirs.map(d => `M50 50 L${BORDA[d][0]} ${BORDA[d][1]}`).join(" ");
+  }
+  const tampa = curva || eReto(mascara) ? "" :
+    `<circle cx="50" cy="50" r="19" fill="var(--cano)"/>`;
+  const aneis = dirs.map(d => {
+    const vertical = d === N || d === S;
+    const [x, y] = BORDA[d];
+    const w = vertical ? 42 : 10, h = vertical ? 10 : 42;
+    const px = vertical ? x - 21 : (d === L ? 90 : 0);
+    const py = vertical ? (d === S ? 90 : 0) : y - 21;
+    return `<rect x="${px}" y="${py}" width="${w}" height="${h}" rx="2" fill="#36404a"/>`;
+  }).join("");
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">
+    <path d="${forma}" fill="none" stroke="var(--cano)" stroke-width="34" stroke-linecap="butt"/>
+    ${tampa}
+    <path d="${forma}" class="miolo" fill="none" stroke-width="20" stroke-linecap="${curva || eReto(mascara) ? "butt" : "round"}"/>
+    ${aneis}
+  </svg>`;
+}
+
+const CAIXA_DAGUA = `<svg viewBox="0 0 80 100" aria-hidden="true">
+  <rect x="6" y="6" width="56" height="44" rx="8" fill="#3f86c7" stroke="#1b4f7c" stroke-width="4"/>
+  <rect x="12" y="20" width="44" height="24" rx="4" fill="var(--agua)"/>
+  <path d="M14 20 Q24 15 34 20 T54 20" fill="none" stroke="#bfe6ff" stroke-width="3"/>
+  <rect x="14" y="50" width="6" height="30" fill="#6b4a33"/><rect x="48" y="50" width="6" height="30" fill="#6b4a33"/>
+  <rect x="52" y="37" width="30" height="26" fill="var(--cano)"/>
+  <rect x="58" y="41" width="24" height="18" fill="var(--agua)"/>
+</svg>`;
+
+const PLANTA = `<svg viewBox="0 0 80 100" aria-hidden="true">
+  <rect x="-2" y="37" width="24" height="26" fill="var(--cano)"/>
+  <rect x="-2" y="41" width="20" height="18" class="cano-planta" fill="var(--cano-vazio)"/>
+  <path d="M18 60 H72 L66 96 H24 Z" fill="#c9683e" stroke="#7a3b1f" stroke-width="4" stroke-linejoin="round"/>
+  <rect x="14" y="54" width="62" height="10" rx="3" fill="#d97a4d" stroke="#7a3b1f" stroke-width="4"/>
+  <path class="caule" d="M45 54 C45 40 42 30 45 16" fill="none" stroke="#8a9a6a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M45 42 C34 40 28 32 30 26 C38 26 44 32 45 42Z" fill="var(--folha)" stroke="#2e6b31" stroke-width="2.5"/>
+  <path d="M45 36 C56 34 62 26 60 20 C52 20 46 26 45 36Z" fill="var(--folha)" stroke="#2e6b31" stroke-width="2.5"/>
+  <g class="flor">
+    ${[0, 60, 120, 180, 240, 300].map(a => `<ellipse cx="45" cy="6" rx="7" ry="10" fill="var(--flor)" stroke="#a83d1d" stroke-width="2" transform="rotate(${a} 45 16)"/>`).join("")}
+    <circle cx="45" cy="16" r="7" fill="#ffd23f" stroke="#a87b00" stroke-width="2"/>
+  </g>
+</svg>`;
+
+/* ---------- Estado ---------- */
+const $ = id => document.getElementById(id);
+let jogo;
+function lerProgresso() {
+  try { return JSON.parse(localStorage.getItem("aguaNaHorta")) || { nivel: 1, maximo: 1 }; }
+  catch { return { nivel: 1, maximo: 1 }; }
+}
+function salvarProgresso() { try { localStorage.setItem("aguaNaHorta", JSON.stringify(progresso)); } catch {} }
+let progresso = lerProgresso();
+
+function iniciarFase(nivel) {
+  document.querySelector(".vitoria")?.remove();
+  const fase = gerarFase(nivel);
+  jogo = { nivel, ...fase, giros: 0, venceu: false };
+  progresso.nivel = nivel; salvarProgresso();
+  montarTabuleiro();
+  ajustarTamanho();
+  atualizar();
+}
+
+function montarTabuleiro() {
+  const grade = $("grade");
+  grade.style.setProperty("--cols", jogo.colunas);
+  $("horta").style.setProperty("--rows", jogo.linhas);
+  grade.innerHTML = "";
+  jogo.pecas.forEach((p, i) => {
+    const b = document.createElement("button");
+    b.className = "peca";
+    b.innerHTML = desenharCano(p.base);
+    b.onclick = () => girarPeca(i);
+    b.oncontextmenu = e => { e.preventDefault(); girarPeca(i, -1); };
+    p.el = b;
+    grade.appendChild(b);
+  });
+  $("caixaDagua").innerHTML = CAIXA_DAGUA;
+  $("planta").innerHTML = PLANTA;
+  $("planta").className = "planta";
+}
+
+function ajustarTamanho() {
+  if (!jogo) return;
+  const largura = document.querySelector(".app").clientWidth;
+  const altura = Math.max(innerHeight - 280, 300);
+  const porLargura = (largura - 12) / (jogo.colunas + 1.6);
+  const porAltura = (altura - 12) / jogo.linhas;
+  const cell = Math.max(34, Math.min(72, Math.floor(Math.min(porLargura, porAltura))));
+  document.documentElement.style.setProperty("--cell", cell + "px");
+  // Caixa d'água e planta alinhadas com a linha de entrada e de saída
+  const alturaObjeto = cell * .8 / .8;
+  $("caixaDagua").style.top = `${6 + cell * jogo.entrada + cell / 2 - alturaObjeto / 2}px`;
+  $("planta").style.top = `${6 + cell * jogo.saida + cell / 2 - alturaObjeto / 2}px`;
+}
+
+function girarPeca(i, sentido = 1) {
+  if (jogo.venceu) return;
+  const p = jogo.pecas[i];
+  p.giro += sentido;
+  jogo.giros++;
+  p.el.classList.remove("dica");
+  atualizar();
+}
+
+function atualizar() {
+  jogo.pecas.forEach(p => { p.el.querySelector("svg").style.transform = `rotate(${p.giro * 90}deg)`; });
+  const { molhadas, chegou } = calcularAgua();
+  jogo.pecas.forEach((p, i) => p.el.classList.toggle("molhada", molhadas.has(i)));
+  $("planta").classList.toggle("molhada", chegou);
+  $("planta").querySelector(".cano-planta")?.setAttribute("fill", chegou ? "var(--agua)" : "var(--cano-vazio)");
+
+  $("nivel").textContent = jogo.nivel;
+  $("giros").textContent = jogo.giros;
+  $("meta").textContent = jogo.meta;
+  $("anterior").disabled = jogo.nivel <= 1;
+  $("proxima").disabled = jogo.nivel >= progresso.maximo;
+
+  if (chegou && !jogo.venceu) vencer(molhadas);
+}
+
+function vencer(molhadas) {
+  jogo.venceu = true;
+  // A água "corre" pelo caminho, uma peça depois da outra
+  molhadas.forEach((dist, i) => {
+    const el = jogo.pecas[i].el;
+    el.style.setProperty("animation-delay", "0s");
+    el.querySelector(".miolo").style.animationDelay = dist * 70 + "ms";
+    el.classList.add("jorro");
+  });
+  const maior = Math.max(...molhadas.values());
+  setTimeout(() => $("planta").classList.add("florida"), maior * 70);
+
+  progresso.maximo = Math.max(progresso.maximo, jogo.nivel + 1);
+  salvarProgresso();
+  $("proxima").disabled = false;
+
+  const estrelas = jogo.giros <= jogo.meta ? 3 : jogo.giros <= jogo.meta * 1.5 + 2 ? 2 : 1;
+  setTimeout(() => {
+    const tela = document.createElement("div");
+    tela.className = "vitoria";
+    tela.innerHTML = `<div class="cartao" role="dialog" aria-label="Fase concluída">
+      <h2>A planta floresceu!</h2>
+      <div class="estrelas">${[1, 2, 3].map(k => `<span class="${k <= estrelas ? "on" : "off"}">★</span>`).join("")}</div>
+      <p>${jogo.giros} giros${estrelas < 3 ? `. Dá para fazer com ${jogo.meta}.` : ". Perfeito!"}</p>
+      <div class="acoes">
+        <button class="btn azul" id="seguir">Próxima fase</button>
+        <button class="btn" id="repetir">Jogar de novo</button>
+      </div>
+    </div>`;
+    document.body.appendChild(tela);
+    $("seguir").onclick = () => iniciarFase(jogo.nivel + 1);
+    $("repetir").onclick = () => iniciarFase(jogo.nivel);
+    $("seguir").focus();
+  }, maior * 70 + 900);
+}
+
+/* ---------- Dica: acerta uma peça do caminho que está virada errada ---------- */
+function darDica() {
+  if (jogo.venceu) return;
+  // Acerta a primeira peça errada do caminho, a partir da caixa d'água
+  const erradas = jogo.pecas.map((p, i) => i)
+    .filter(i => jogo.pecas[i].noCaminho && giroQueFalta(jogo.pecas[i]) > 0)
+    .sort((a, b) => jogo.pecas[a].ordem - jogo.pecas[b].ordem);
+  if (!erradas.length) return;
+  const i = erradas[0];
+  const p = jogo.pecas[i];
+  const falta = giroQueFalta(p);
+  p.giro += falta;
+  jogo.giros += falta;
+  p.el.classList.remove("dica"); void p.el.offsetWidth; p.el.classList.add("dica");
+  atualizar();
+}
+
+$("btnDica").onclick = darDica;
+$("btnReiniciar").onclick = () => iniciarFase(jogo.nivel);
+$("anterior").onclick = () => iniciarFase(Math.max(1, jogo.nivel - 1));
+$("proxima").onclick = () => iniciarFase(Math.min(progresso.maximo, jogo.nivel + 1));
+addEventListener("resize", ajustarTamanho);
+
+iniciarFase(Math.min(progresso.nivel || 1, progresso.maximo || 1));
+</script>
+
+</body></html>
